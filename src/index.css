@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Synapse Forge Design System — dark, electric, motivating */
+@layer base {
+  :root {
+    --background: 240 18% 7%;
+    --foreground: 240 10% 96%;
+
+    --card: 240 16% 10%;
+    --card-foreground: 240 10% 96%;
+
+    --popover: 240 18% 9%;
+    --popover-foreground: 240 10% 96%;
+
+    --primary: 265 90% 66%;
+    --primary-foreground: 240 10% 98%;
+    --primary-glow: 280 95% 72%;
+
+    --secondary: 195 95% 55%;
+    --secondary-foreground: 240 18% 7%;
+
+    --accent: 160 85% 50%;
+    --accent-foreground: 240 18% 7%;
+
+    --muted: 240 12% 16%;
+    --muted-foreground: 240 6% 65%;
+
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 240 10% 98%;
+
+    --warning: 35 95% 60%;
+    --warning-foreground: 240 18% 7%;
+
+    --success: 145 70% 50%;
+    --success-foreground: 240 18% 7%;
+
+    --streak: 18 95% 60%;
+    --streak-glow: 35 100% 65%;
+
+    --border: 240 12% 18%;
+    --input: 240 12% 16%;
+    --ring: 265 90% 66%;
+
+    --radius: 0.85rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(265 90% 66%), hsl(280 95% 72%));
+    --gradient-hero: linear-gradient(135deg, hsl(265 90% 66%) 0%, hsl(195 95% 55%) 100%);
+    --gradient-streak: linear-gradient(135deg, hsl(18 95% 60%), hsl(35 100% 65%));
+    --gradient-success: linear-gradient(135deg, hsl(160 85% 50%), hsl(145 70% 50%));
+    --gradient-card: linear-gradient(145deg, hsl(240 16% 11%), hsl(240 18% 8%));
+    --gradient-glow: radial-gradient(circle at 30% 20%, hsl(265 90% 66% / 0.18), transparent 60%);
+
+    --shadow-elegant: 0 10px 40px -12px hsl(265 90% 66% / 0.4);
+    --shadow-glow: 0 0 60px hsl(280 95% 72% / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(240 30% 2% / 0.6);
+    --shadow-streak: 0 0 30px hsl(18 95% 60% / 0.5);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 240 20% 6%;
+    --sidebar-foreground: 240 8% 85%;
+    --sidebar-primary: 265 90% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 14% 13%;
+    --sidebar-accent-foreground: 240 10% 96%;
+    --sidebar-border: 240 14% 14%;
+    --sidebar-ring: 265 90% 66%;
+  }
+
+  .light {
+    --background: 240 25% 98%;
+    --foreground: 240 18% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 18% 10%;
+    --muted: 240 15% 94%;
+    --muted-foreground: 240 6% 40%;
+    --border: 240 12% 88%;
+    --input: 240 12% 90%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-image: var(--gradient-glow);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4 { @apply tracking-tight; }
+}
+
+@layer utilities {
+  .gradient-primary { background-image: var(--gradient-primary); }
+  .gradient-hero { background-image: var(--gradient-hero); }
+  .gradient-streak { background-image: var(--gradient-streak); }
+  .gradient-success { background-image: var(--gradient-success); }
+  .gradient-card { background-image: var(--gradient-card); }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-hero);
+  }
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .shadow-elegant { box-shadow: var(--shadow-elegant); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-card-soft { box-shadow: var(--shadow-card); }
+  .shadow-streak { box-shadow: var(--shadow-streak); }
+
+  .glass {
+    @apply bg-card/60 backdrop-blur-xl border border-border/60;
+  }
+
+  .flame-pulse {
+    animation: flame-pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes flame-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px hsl(var(--streak) / 0.6)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 18px hsl(var(--streak-glow) / 0.9)); }
+}
+
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in-up { animation: float-up 0.4s ease-out both; }

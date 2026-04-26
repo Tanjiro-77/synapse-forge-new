@@ -1,0 +1,10 @@
+project_id = "uhzccbbesqrqsqwyzrwi"
+
+[functions.ai-coach]
+verify_jwt = true
+
+[functions.ai-memory]
+verify_jwt = true
+
+[functions.mock-test]
+verify_jwt = true
