@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,7 +131,10 @@ const useHomeworkData = (userId: string | undefined) => {
           .order("name"),
       ]);
 
-      setHomework(hwData ?? []);
+      setHomework((hwData ?? []).map(h => ({
+        ...h,
+        priority: h.priority as Priority
+      })));
       setSubjects(subjectsData ?? []);
     } catch (error: any) {
       toast.error(error.message ?? "Failed to load homework");

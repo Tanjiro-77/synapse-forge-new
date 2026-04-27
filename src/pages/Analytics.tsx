@@ -103,6 +103,9 @@ const STATUS_CONFIG = {
 /* ═══════════════════════════════════════════════════════════════
    Types
 ═══════════════════════════════════════════════════════════════ */
+
+type ChapterStatus = "completed" | "in_progress" | "needs_revision" | "not_started";
+
 interface FocusSession {
   id: string;
   session_date: string;
@@ -121,7 +124,7 @@ interface TestScore {
 }
 
 interface Chapter {
-  status: keyof typeof STATUS_CONFIG;
+  status: ChapterStatus;
   subject_id: string;
   subjects?: { name: string; color: string };
 }
@@ -181,7 +184,10 @@ const useAnalyticsData = (userId: string | undefined) => {
 
       setSessions(sessionsRes.data ?? []);
       setScores(scoresRes.data ?? []);
-      setChapters(chaptersRes.data ?? []);
+      setChapters((chaptersRes.data ?? []).map(ch => ({
+        ...ch,
+        status: ch.status as ChapterStatus
+      })));
       setSubjects(subjectsRes.data ?? []);
     } catch (error: any) {
       toast.error(error.message ?? "Failed to load analytics");
