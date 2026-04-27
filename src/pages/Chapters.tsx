@@ -58,6 +58,8 @@ import {
   Calendar,
   Filter,
   ArrowUpDown,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { STATUS_LABEL, STATUS_COLOR, nextRevisionDate } from "@/lib/study";
 import { toast } from "sonner";
@@ -217,7 +219,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-/* ── Chapter card ── */
+/* ── Chapter card (used when a single subject is filtered) ── */
 interface ChapterCardProps {
   chapter: Chapter;
   onEdit: (chapter: Chapter) => void;
@@ -251,12 +253,10 @@ const ChapterCard = ({
       <div className="flex flex-col sm:flex-row gap-4 items-start justify-between">
         {/* Left — metadata */}
         <div className="flex-1 min-w-0 space-y-2.5">
-          {/* Title + badges */}
           <div className="flex items-start gap-2 flex-wrap">
             <h3 className="font-semibold text-sm leading-tight break-words">{chapter.name}</h3>
           </div>
 
-          {/* Badges row */}
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge status={chapter.status} />
 
@@ -283,7 +283,6 @@ const ChapterCard = ({
             )}
           </div>
 
-          {/* Subject tag */}
           {chapter.subjects && (
             <div className="flex items-center gap-1.5">
               <div
@@ -299,7 +298,6 @@ const ChapterCard = ({
             </div>
           )}
 
-          {/* Notes preview */}
           {chapter.notes && (
             <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
               {chapter.notes}
@@ -309,7 +307,6 @@ const ChapterCard = ({
 
         {/* Right — actions */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Status dropdown */}
           <Select value={chapter.status} onValueChange={(v) => onStatusChange(chapter.id, v)}>
             <SelectTrigger className="h-8 w-36 text-xs rounded-lg">
               <SelectValue />
@@ -329,14 +326,9 @@ const ChapterCard = ({
             </SelectContent>
           </Select>
 
-          {/* More actions dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-8 h-8 rounded-lg hover:bg-muted"
-              >
+              <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-muted">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -369,6 +361,214 @@ const ChapterCard = ({
   );
 };
 
+/* ── Subject Table — groups chapters under a collapsible subject header ── */
+interface SubjectTableProps {
+  subject: Subject;
+  chapters: Chapter[];
+  onEdit: (chapter: Chapter) => void;
+  onDelete: (chapter: Chapter) => void;
+  onStatusChange: (id: string, status: string) => void;
+  onToggleWeak: (chapter: Chapter) => void;
+  onScheduleRevision: (chapter: Chapter) => void;
+}
+
+const SubjectTable = ({
+  subject,
+  chapters,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onToggleWeak,
+  onScheduleRevision,
+}: SubjectTableProps) => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const completedCount = chapters.filter((c) => c.status === "completed").length;
+  const weakCount = chapters.filter((c) => c.is_weak).length;
+
+  return (
+    <div className="rounded-xl border border-border/50 overflow-hidden bg-card/40 backdrop-blur-sm">
+      {/* Subject header row */}
+      <button
+        onClick={() => setCollapsed((p) => !p)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+      >
+        {/* Colour dot */}
+        <div
+          className="w-3 h-3 rounded-full shrink-0"
+          style={{ backgroundColor: subject.color }}
+        />
+
+        {/* Subject name */}
+        <span className="font-semibold text-sm flex-1" style={{ color: subject.color }}>
+          {subject.name}
+        </span>
+
+        {/* Mini stats */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{chapters.length} chapter{chapters.length !== 1 ? "s" : ""}</span>
+          {completedCount > 0 && (
+            <Badge variant="outline" className="h-5 text-[10px] gap-1 border-emerald-500/40 text-emerald-600 bg-emerald-500/5">
+              <CheckCircle2 className="w-2.5 h-2.5" />
+              {completedCount} done
+            </Badge>
+          )}
+          {weakCount > 0 && (
+            <Badge variant="outline" className="h-5 text-[10px] gap-1 border-amber-500/40 text-amber-600 bg-amber-500/5">
+              <AlertTriangle className="w-2.5 h-2.5" />
+              {weakCount} weak
+            </Badge>
+          )}
+        </div>
+
+        {/* Collapse chevron */}
+        {collapsed ? (
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+        )}
+      </button>
+
+      {/* Chapter rows */}
+      {!collapsed && (
+        <div className="divide-y divide-border/40">
+          {/* Table header */}
+          <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-2 bg-muted/30 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <span>Chapter</span>
+            <span className="w-28 text-center">Status</span>
+            <span className="w-20 text-center">Flags</span>
+            <span className="w-8" />
+          </div>
+
+          {chapters.map((chapter) => {
+            const isRevisionOverdue = chapter.next_revision_at
+              ? isPast(parseISO(chapter.next_revision_at))
+              : false;
+
+            return (
+              <div
+                key={chapter.id}
+                className="flex flex-col sm:grid sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 px-4 py-3 hover:bg-muted/20 transition-colors group items-start sm:items-center"
+              >
+                {/* Chapter name + notes */}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight truncate">{chapter.name}</p>
+                  {chapter.notes && (
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      {chapter.notes}
+                    </p>
+                  )}
+                  {/* Revision badge (shown inline on mobile too) */}
+                  {chapter.next_revision_at && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "gap-1 h-5 text-[10px] mt-1",
+                        isRevisionOverdue
+                          ? "border-red-500/40 text-red-600 bg-red-500/5"
+                          : "border-primary/40 text-primary bg-primary/5",
+                      )}
+                    >
+                      <Calendar className="w-2.5 h-2.5" />
+                      {isRevisionOverdue
+                        ? "Overdue"
+                        : format(parseISO(chapter.next_revision_at), "MMM d")}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Status selector */}
+                <div className="w-full sm:w-36">
+                  <Select
+                    value={chapter.status}
+                    onValueChange={(v) => onStatusChange(chapter.id, v)}
+                  >
+                    <SelectTrigger className="h-7 w-full text-xs rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(STATUS_LABEL).map(([value, label]) => {
+                        const Icon = STATUS_ICONS[value] ?? Circle;
+                        return (
+                          <SelectItem key={value} value={value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="w-3 h-3" />
+                              {label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Flags */}
+                <div className="flex items-center gap-1.5 w-full sm:w-20 justify-start sm:justify-center">
+                  {chapter.is_weak && (
+                    <Badge
+                      variant="outline"
+                      className="h-5 text-[10px] gap-1 border-amber-500/40 text-amber-600 bg-amber-500/5"
+                    >
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      Weak
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end w-full sm:w-8">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-7 h-7 rounded-lg hover:bg-muted opacity-60 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem
+                        onClick={() => onEdit(chapter)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onToggleWeak(chapter)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {chapter.is_weak ? "Mark as strong" : "Mark as weak"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onScheduleRevision(chapter)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Schedule revision
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onDelete(chapter)}
+                        className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ── Edit/Create dialog ── */
 interface ChapterDialogProps {
   open: boolean;
@@ -384,7 +584,6 @@ const ChapterDialog = ({ open, onOpenChange, chapter, subjects, onSave }: Chapte
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Sync form when dialog opens
   useEffect(() => {
     if (open) {
       setName(chapter?.name ?? "");
@@ -422,7 +621,6 @@ const ChapterDialog = ({ open, onOpenChange, chapter, subjects, onSave }: Chapte
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-          {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="chapter-name" className="text-sm font-medium">
               Chapter name
@@ -442,7 +640,6 @@ const ChapterDialog = ({ open, onOpenChange, chapter, subjects, onSave }: Chapte
             </p>
           </div>
 
-          {/* Subject */}
           <div className="space-y-2">
             <Label htmlFor="chapter-subject" className="text-sm font-medium">
               Subject
@@ -455,10 +652,7 @@ const ChapterDialog = ({ open, onOpenChange, chapter, subjects, onSave }: Chapte
                 {subjects.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: s.color }}
-                      />
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
                       {s.name}
                     </div>
                   </SelectItem>
@@ -467,7 +661,6 @@ const ChapterDialog = ({ open, onOpenChange, chapter, subjects, onSave }: Chapte
             </Select>
           </div>
 
-          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="chapter-notes" className="text-sm font-medium">
               Notes <span className="text-muted-foreground font-normal">(optional)</span>
@@ -496,7 +689,11 @@ const ChapterDialog = ({ open, onOpenChange, chapter, subjects, onSave }: Chapte
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting || !name.trim()} className="rounded-xl gap-2">
+            <Button
+              type="submit"
+              disabled={submitting || !name.trim()}
+              className="rounded-xl gap-2"
+            >
               {submitting ? "Saving..." : chapter ? "Update" : "Create"}
             </Button>
           </DialogFooter>
@@ -558,30 +755,25 @@ const Chapters = () => {
     document.title = "Chapters · Synapse Forge";
   }, []);
 
-  /* ── Pre-select subject from URL ── */
   const defaultSubject = useMemo(() => {
     if (subjectFilter !== "all") return subjectFilter;
     return subjects[0]?.id ?? "";
   }, [subjectFilter, subjects]);
 
-  /* ── Open create dialog ── */
   const handleOpenNew = () => {
     setEditing(null);
     setDialogOpen(true);
   };
 
-  /* ── Open edit dialog ── */
   const handleEdit = (chapter: Chapter) => {
     setEditing(chapter);
     setDialogOpen(true);
   };
 
-  /* ── Save (create or update) ── */
   const handleSave = async (data: { name: string; subjectId: string; notes: string }) => {
     if (!user) return;
 
     if (editing) {
-      // Update
       const { error } = await supabase
         .from("chapters")
         .update({
@@ -595,10 +787,8 @@ const Chapters = () => {
         toast.error(error.message ?? "Failed to update chapter");
         throw error;
       }
-
       toast.success("Chapter updated");
     } else {
-      // Create
       const { error } = await supabase.from("chapters").insert({
         user_id: user.id,
         name: data.name,
@@ -610,14 +800,12 @@ const Chapters = () => {
         toast.error(error.message ?? "Failed to create chapter");
         throw error;
       }
-
       toast.success("Chapter added");
     }
 
     reload();
   };
 
-  /* ── Status change ── */
   const handleStatusChange = async (id: string, status: string) => {
     const { error } = await supabase.from("chapters").update({ status }).eq("id", id);
     if (error) {
@@ -628,7 +816,6 @@ const Chapters = () => {
     }
   };
 
-  /* ── Toggle weak ── */
   const handleToggleWeak = async (chapter: Chapter) => {
     const newValue = !chapter.is_weak;
     const { error } = await supabase
@@ -644,7 +831,6 @@ const Chapters = () => {
     }
   };
 
-  /* ── Schedule revision ── */
   const handleScheduleRevision = async (chapter: Chapter) => {
     const stage = chapter.revision_stage ?? 0;
     const nextDate = nextRevisionDate(stage);
@@ -667,7 +853,6 @@ const Chapters = () => {
     }
   };
 
-  /* ── Delete ── */
   const handleDelete = async () => {
     if (!toDelete) return;
 
@@ -696,6 +881,39 @@ const Chapters = () => {
     return { total, completed, inProgress, weak, revisionDue };
   }, [chapters]);
 
+  /*
+   * When viewing ALL subjects → group chapters by subject and render
+   * one <SubjectTable> per subject (collapsible).
+   * When a specific subject is selected → flat card list (original view).
+   */
+  const chaptersBySubject = useMemo(() => {
+    if (subjectFilter !== "all") return null;
+
+    const map = new Map<string, { subject: Subject; chapters: Chapter[] }>();
+
+    // Preserve subject order (alphabetical from query)
+    subjects.forEach((s) => {
+      map.set(s.id, { subject: s, chapters: [] });
+    });
+
+    chapters.forEach((c) => {
+      if (map.has(c.subject_id)) {
+        map.get(c.subject_id)!.chapters.push(c);
+      }
+    });
+
+    // Only keep subjects that actually have chapters
+    return Array.from(map.values()).filter((g) => g.chapters.length > 0);
+  }, [subjectFilter, subjects, chapters]);
+
+  const actionHandlers = {
+    onEdit: handleEdit,
+    onDelete: setToDelete,
+    onStatusChange: handleStatusChange,
+    onToggleWeak: handleToggleWeak,
+    onScheduleRevision: handleScheduleRevision,
+  };
+
   /* ─────────────────────────────────────────── render ── */
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -717,7 +935,6 @@ const Chapters = () => {
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          {/* Subject filter */}
           <Select
             value={subjectFilter}
             onValueChange={(v) => setParams(v === "all" ? {} : { subject: v })}
@@ -739,7 +956,6 @@ const Chapters = () => {
             </SelectContent>
           </Select>
 
-          {/* Add button */}
           <Button
             onClick={handleOpenNew}
             disabled={subjects.length === 0}
@@ -787,7 +1003,7 @@ const Chapters = () => {
           description="Create a subject first before adding chapters."
           action={{
             label: "Go to Subjects",
-            onClick: () => window.location.href = "/subjects?create=true",
+            onClick: () => (window.location.href = "/subjects?create=true"),
           }}
         />
       ) : chapters.length === 0 ? (
@@ -801,18 +1017,23 @@ const Chapters = () => {
           }
           action={{ label: "Add Chapter", onClick: handleOpenNew }}
         />
+      ) : subjectFilter === "all" ? (
+        /* ── Grouped table view (all subjects) ── */
+        <div className="space-y-4">
+          {chaptersBySubject!.map(({ subject, chapters: subChapters }) => (
+            <SubjectTable
+              key={subject.id}
+              subject={subject}
+              chapters={subChapters}
+              {...actionHandlers}
+            />
+          ))}
+        </div>
       ) : (
+        /* ── Flat card view (single subject filtered) ── */
         <div className="space-y-3">
           {chapters.map((c) => (
-            <ChapterCard
-              key={c.id}
-              chapter={c}
-              onEdit={handleEdit}
-              onDelete={setToDelete}
-              onStatusChange={handleStatusChange}
-              onToggleWeak={handleToggleWeak}
-              onScheduleRevision={handleScheduleRevision}
-            />
+            <ChapterCard key={c.id} chapter={c} {...actionHandlers} />
           ))}
         </div>
       )}
